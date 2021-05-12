@@ -44,6 +44,7 @@ authRoute.post("/login", (req, res) => {
           throw new Error("Error in finding user");
         });
 
+        console.log(req.body);
         //Wrong Username
         if (!user) {
           res.status(401).send({
@@ -63,7 +64,6 @@ authRoute.post("/login", (req, res) => {
           });
           return;
         }
-        console.log(req.body);
         const accessToken = accessTokenGenerator({
           username: req.body.username,
           role: req.body.role,

@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const jwt = require("jsonwebtoken");
 const dotEnv = require("dotenv");
+const cors = require("cors");
 
 var customerRouter = require("./routers/customer.router");
 var vendorRouter = require("./routers/vendor.router.js");
@@ -12,6 +13,7 @@ dotEnv.config();
 const PORT = process.env.PORT || 8080;
 const app = express();
 app.use(bodyParser.json());
+app.use(cors());
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
