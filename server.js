@@ -4,6 +4,10 @@ const morgan = require("morgan");
 const jwt = require("jsonwebtoken");
 const dotEnv = require("dotenv");
 
+var customerRouter = require("./routers/customer.router");
+var vendorRouter = require("./routers/vendor.router.js");
+var employeeRouter = require("./routers/employee.router");
+
 dotEnv.config();
 const PORT = process.env.PORT || 8080;
 const app = express();
@@ -44,26 +48,27 @@ app.get("/", (_req, res) => {
     });
 });
 
-app.use(require("./routes/auth.route"));
+app.use(require("./auth.route"));
 
 app.use((req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
-  if (token === null)
-    return res.status(401).send({ message: "No access token" });
+  if (!token) return res.status(401).send({ message: "No access token" });
 
   jwt.verify(token, process.env.SECRET_KEY, (err, payload) => {
-    console.log(err);
-    if (err) return res.status(403).send({ message: "Access token expired" });
+    if (err) {
+      console.log(err);
+      return res.status(403).send({ message: "Access token expired" });
+    }
     req.user = payload;
     next();
   });
-})
+});
 
-// app.use(require("./routes/customer.route"));
-// app.use(require("./routes/vendor.route"));
-// app.use(require("./routes/employee.route"));
+app.use("/customer", customerRouter);
+app.use("/vendor", vendorRouter);
+app.use("/employee", employeeRouter);
 
 app.listen(PORT, () => {
   console.log(`Listening at PORT: ${PORT}`);
-})
+});

@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
-const dbConnect = require("../dbConnect");
+const dbConnect = require("./dbConnect");
 // const crypto = require("crypto");
 
 const authRoute = express();
@@ -14,10 +14,9 @@ authRoute.use(bodyParser.json());
 
 const accessTokenGenerator = (payload) => {
   return jwt.sign(payload, process.env.SECRET_KEY, {
-    expiresIn: '3600s',
+    expiresIn: "3600s",
   });
 };
-
 
 //Endpoint for POST /login
 //To log in as an user
@@ -29,9 +28,8 @@ const accessTokenGenerator = (payload) => {
   }
 ***************************/
 authRoute.post("/login", (req, res) => {
-  const { username, password } = req.body;
-
-  if (!(username && password)) {
+  const { username, password, role } = req.body;
+  if (!(username && password && role)) {
     res.status(400).send({
       message: "Bad Request Body.",
     });
@@ -58,24 +56,25 @@ authRoute.post("/login", (req, res) => {
         // const salt = actualPassword.split("$")[2];
         // const hashedPassword = hash(password, salt);
 
-        //Wrong Password
-        if (password !== user.password) {
+        //Wrong Password or Role
+        if (password !== user.password || role !== user.role) {
           res.status(401).send({
             message: `Invalid credentials`,
           });
           return;
         }
+        console.log(req.body);
         const accessToken = accessTokenGenerator({
           username: req.body.username,
-          accountId: user.accountId,
+          role: req.body.role,
         });
 
         const data = {
           username: user.username,
           role: user.role,
           accessToken,
-        }
-        
+        };
+
         res.status(200).send({ data });
       })
       .catch((err) => {
