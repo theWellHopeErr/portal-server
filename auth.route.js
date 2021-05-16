@@ -1,20 +1,17 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
-const dbConnect = require("./dbConnect");
-// const crypto = require("crypto");
+const parseString = require("xml2js").parseString;
+const http = require("http");
+// const util = require("util");
+// console.log(util.inspect(result, { showHidden:true,depth: null }));
 
 const authRoute = express();
 authRoute.use(bodyParser.json());
 
-// const hash = (password, salt) => {
-//   var hashed = crypto.pbkdf2Sync(password, salt, 10000, 512, "sha512");
-//   return ["pdkdf2", "10000", salt, hashed.toString("hex")].join("$");
-// };
-
 const accessTokenGenerator = (payload) => {
   return jwt.sign(payload, process.env.SECRET_KEY, {
-    expiresIn: "3600s",
+    expiresIn: "360031556926s",
   });
 };
 
@@ -29,58 +26,88 @@ const accessTokenGenerator = (payload) => {
 ***************************/
 authRoute.post("/login", (req, res) => {
   const { username, password, role } = req.body;
+  console.log(req.body);
   if (!(username && password && role)) {
     res.status(400).send({
       message: "Bad Request Body.",
     });
   } else {
-    dbConnect
-      .getDB()
-      .then(async (db) => {
-        const userCollection = db.collection("user");
+    if (role === "customer") {
+      var options = {
+        method: "POST",
+        hostname: "dxktpipo.kaarcloud.com",
+        port: "50000",
+        path: "/XISOAPAdapter/MessageServlet?senderParty=&senderService=BC_SSR_CUST&receiverParty=&receiverService=&interface=SI_SSR_CUSTAUTH&interfaceNamespace=https%3A%2F%2Fssr-portals.com%2Fcustomer",
+        headers: {
+          authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
+          "content-type": "text/xml",
+          soapaction: '\\"http://sap.com/xi/WebService/soap1.1\\"',
+          "cache-control": "no-cache",
+          "postman-token": "4bd8bbb0-7f9b-59de-a290-854aa1680d48",
+        },
+      };
 
-        const user = await userCollection.findOne({ username }).catch((err) => {
-          console.log("Error in finding user", err);
-          throw new Error("Error in finding user");
+      var request = http.request(options, (response) => {
+        var chunks = [];
+
+        response.on("data", (chunk) => {
+          chunks.push(chunk);
         });
 
-        console.log(req.body);
-        //Wrong Username
-        if (!user) {
-          res.status(401).send({
-            message: `Invalid credentials`,
-          });
-          return;
-        }
+        response.on("end", () => {
+          var body = Buffer.concat(chunks);
+          parseString(body, (err, result) => {
+            if (
+              result["SOAP:Envelope"]["SOAP:Body"][0][
+                "ns0:ZBAPI_SSR_CUSTAUTH.Response"
+              ][0]["RETURN"][0]["MESSAGE"][0] === "UNAUTHORIZED"
+            ) {
+              res.status(401).send({
+                message: `Invalid Credentials`,
+              });
+              return;
+            } else if (
+              result["SOAP:Envelope"]["SOAP:Body"][0][
+                "ns0:ZBAPI_SSR_CUSTAUTH.Response"
+              ][0]["RETURN"][0]["MESSAGE"][0] === "FORBIDDEN"
+            ) {
+              res.status(401).send({
+                message: `Invalid Username`,
+              });
+              return;
+            }
+            const accessToken = accessTokenGenerator({
+              username: req.body.username,
+              role: req.body.role,
+            });
 
-        // const actualPassword = user.password;
-        // const salt = actualPassword.split("$")[2];
-        // const hashedPassword = hash(password, salt);
+            const data = {
+              username: req.body.username,
+              role: req.body.role,
+              accessToken,
+            };
 
-        //Wrong Password or Role
-        if (password !== user.password || role !== user.role) {
-          res.status(401).send({
-            message: `Invalid credentials`,
+            res.status(200).send({ ...data });
           });
-          return;
-        }
-        const accessToken = accessTokenGenerator({
-          username: req.body.username,
-          role: req.body.role,
         });
 
-        const data = {
-          username: user.username,
-          role: user.role,
-          accessToken,
-        };
-
-        res.status(200).send({ data });
-      })
-      .catch((err) => {
-        console.log({ url: req.url, err });
-        res.status(500).send("Runtime Error");
+        response.on("error", (error) => {
+          console.error(error);
+        });
       });
+
+      request.write(
+        `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTAUTH>\r\n         <!--You may enter the following 2 items in any order-->\r\n         <PASSWORD>${password}</PASSWORD>\r\n         <USERNAME>${username}</USERNAME>\r\n      </urn:ZBAPI_SSR_CUSTAUTH>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
+      );
+      request.end();
+    } else if (role === "vendor") {
+    } else if (role === "employee") {
+    } else {
+      res.status(401).send({
+        message: `Invalid credentials`,
+      });
+      return;
+    }
   }
 });
 
