@@ -21,35 +21,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("combined"));
 }
 
-const dbConnect = require("./dbConnect");
-dbConnect
-  .connectDB()
-  .then(() => {
-    console.log("Connected successfully");
-  })
-  .catch((err) => {
-    console.log("Connection error", err);
-  });
-
-app.get("/", (_req, res) => {
-  dbConnect
-    .getDB()
-    .then(async (db) => {
-      const users = await db
-        .collection("user")
-        .find({}, { projection: { password: 0, _id: 0 } })
-        .toArray()
-        .catch((err) => {
-          res.status(500).send(err);
-          return;
-        });
-      res.send(users);
-    })
-    .catch((err) => {
-      res.status(500).send(err);
-    });
-});
-
 app.use(require("./auth.route"));
 
 app.use((req, res, next) => {
