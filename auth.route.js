@@ -57,23 +57,40 @@ authRoute.post("/login", (req, res) => {
         response.on("end", () => {
           var body = Buffer.concat(chunks);
           parseString(body, (err, result) => {
-            if (
-              result["SOAP:Envelope"]["SOAP:Body"][0][
-                "ns0:ZBAPI_SSR_CUSTAUTH.Response"
-              ][0]["RETURN"][0]["MESSAGE"][0] === "UNAUTHORIZED"
-            ) {
-              res.status(401).send({
-                message: `Invalid Credentials`,
-              });
-              return;
-            } else if (
-              result["SOAP:Envelope"]["SOAP:Body"][0][
-                "ns0:ZBAPI_SSR_CUSTAUTH.Response"
-              ][0]["RETURN"][0]["MESSAGE"][0] === "FORBIDDEN"
-            ) {
-              res.status(401).send({
-                message: `Invalid Username`,
-              });
+            try {
+              if (result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"]) {
+                console.log(
+                  result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"][0][
+                    "faultstring"
+                  ][0]
+                );
+                res.status(501).send({ message: "Something's wrong with SAP" });
+                return;
+              } else {
+                if (
+                  result["SOAP:Envelope"]["SOAP:Body"][0][
+                    "ns0:ZBAPI_SSR_CUSTAUTH.Response"
+                  ][0]["RETURN"][0]["MESSAGE"][0] === "UNAUTHORIZED"
+                ) {
+                  res.status(401).send({
+                    message: `Invalid Credentials`,
+                  });
+                  return;
+                } else if (
+                  result["SOAP:Envelope"]["SOAP:Body"][0][
+                    "ns0:ZBAPI_SSR_CUSTAUTH.Response"
+                  ][0]["RETURN"][0]["MESSAGE"][0] === "FORBIDDEN"
+                ) {
+                  res.status(401).send({
+                    message: `Invalid Username`,
+                  });
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error(error);
+              res.status(500).send({ message: "Internal Server Error" });
+
               return;
             }
             const accessToken = accessTokenGenerator({
@@ -95,11 +112,15 @@ authRoute.post("/login", (req, res) => {
           console.error(error);
         });
       });
-
-      request.write(
-        `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTAUTH>\r\n         <!--You may enter the following 2 items in any order-->\r\n         <PASSWORD>${password}</PASSWORD>\r\n         <USERNAME>${username}</USERNAME>\r\n      </urn:ZBAPI_SSR_CUSTAUTH>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
-      );
-      request.end();
+      try {
+        request.write(
+          `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTAUTH>\r\n         <!--You may enter the following 2 items in any order-->\r\n         <PASSWORD>${password}</PASSWORD>\r\n         <USERNAME>${username}</USERNAME>\r\n      </urn:ZBAPI_SSR_CUSTAUTH>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
+        );
+        request.end();
+      } catch (error) {
+        console.error(error);
+        res.status(501).send({ message: "Something's wrong" });
+      }
     } else if (role === "vendor") {
     } else if (role === "employee") {
     } else {
