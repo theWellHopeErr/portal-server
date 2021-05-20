@@ -20,10 +20,10 @@ router.get("/", (req, res) => {
 //To get Customer Details
 /**************************
   Query Format
-  /customer/profile?cust_id={customer-id}
+  /customer/profile
 ***************************/
 router.get("/profile", (req, res) => {
-  var options = {
+  const options = {
     method: "POST",
     hostname: "dxktpipo.kaarcloud.com",
     port: 50000,
@@ -32,29 +32,31 @@ router.get("/profile", (req, res) => {
       "Content-Type": "text/xml",
       Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
       Cookie:
-        "MYSAPSSO2=AjExMDAgAA1wb3J0YWw6UE9VU0VSiAAHZGVmYXVsdAEABlBPVVNFUgIAAzAwMAMAA0tQTwQADDIwMjEwNTE2MDkyMwUABAAAAAgKAAZQT1VTRVL%2FAQQwggEABgkqhkiG9w0BBwKggfIwge8CAQExCzAJBgUrDgMCGgUAMAsGCSqGSIb3DQEHATGBzzCBzAIBATAiMB0xDDAKBgNVBAMTA0tQTzENMAsGA1UECxMESjJFRQIBADAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwNTE2MDkyMzU2WjAjBgkqhkiG9w0BCQQxFgQU5r6O2bvFhM0vnhUjBZEXQaBRd4UwCQYHKoZIzjgEAwQuMCwCFEvw46iRGiRTdWal0lGENdkvIh7mAhR99nbBV%2FVuF!vWcFf9TJwBOHeU1A%3D%3D; JSESSIONID=DlxfTFaU-oEiQ-KaDS665MR_Q310eQF-Y2kA_SAPd8qUzL0O7vhfvOohPvMQHDLa; JSESSIONMARKID=DSoJ_QN8PWUmulnak1smvazX7Igwnu0VbmDn5jaQA; saplb_*=(J2EE6906720)6906750",
+        "MYSAPSSO2=AjExMDAgAA1wb3J0YWw6UE9VU0VSiAAHZGVmYXVsdAEABlBPVVNFUgIAAzAwMAMAA0tQTwQADDIwMjEwNTIwMDUzMQUABAAAAAgKAAZQT1VTRVL%2FAQQwggEABgkqhkiG9w0BBwKggfIwge8CAQExCzAJBgUrDgMCGgUAMAsGCSqGSIb3DQEHATGBzzCBzAIBATAiMB0xDDAKBgNVBAMTA0tQTzENMAsGA1UECxMESjJFRQIBADAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwNTIwMDUzMTQ5WjAjBgkqhkiG9w0BCQQxFgQU0PzA74N6gRRQ1mQs!9Huca9JJ%2FwwCQYHKoZIzjgEAwQuMCwCFF50JW%2FmXmrfOfSZA5AEdtvn21P1AhQVfb5g!GY1zDT3EmF%2F3EgLLHQCUQ%3D%3D; JSESSIONID=ejz1-dHlQ3ftfg7yLgH-32ZuL0KIeQF-Y2kA_SAPpQ5dIe044JK3d_c4p73JE5rn; JSESSIONMARKID=lYCD1g0acW_c6QLK0lWz4iVMxRj2T_VD7nPH5jaQA; saplb_*=(J2EE6906720)6906750",
     },
     maxRedirects: 20,
   };
 
-  var request = http.request(options, (resp) => {
-    var chunks = [];
+  const request = http.request(options, (resp) => {
+    const chunks = [];
 
     resp.on("data", (chunk) => {
       chunks.push(chunk);
     });
 
     resp.on("end", (chunk) => {
-      var body = Buffer.concat(chunks);
+      const body = Buffer.concat(chunks);
       parseString(body, (err, result) => {
         try {
           if (result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"]) {
-            console.log(
+            console.error(
               result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"][0][
                 "faultstring"
               ][0]
             );
-            res.status(501).send({ message: "Something's wrong with SAP" });
+            return res
+              .status(501)
+              .send({ message: "Something's wrong with SAP" });
           } else {
             const {
               CUSTOMER,
@@ -87,7 +89,7 @@ router.get("/profile", (req, res) => {
           }
         } catch (error) {
           console.error(error);
-          res.status(500).send({ message: "Internal Server Error" });
+          return res.status(500).send({ message: "Internal Server Error" });
         }
       });
     });
@@ -99,12 +101,12 @@ router.get("/profile", (req, res) => {
 
   try {
     request.write(
-      `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:sap-com:document:sap:rfc:functions">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTDET>\r\n         <CUST_ID>${req.query.cust_id}</CUST_ID>\r\n      </urn:ZBAPI_SSR_CUSTDET>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
+      `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTDET>\r\n         <CUST_ID>${req.user.username}</CUST_ID>\r\n      </urn:ZBAPI_SSR_CUSTDET>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
     );
     request.end();
   } catch (error) {
     console.error(error);
-    res.status(501).send({ message: "Something's wrong" });
+    return res.status(501).send({ message: "Something's wrong" });
   }
 });
 
@@ -114,20 +116,20 @@ router.get("/profile", (req, res) => {
   req.body Format
   {
     "customer": "string",
-    "name": "string",
-    "name_2": "string",
+    "name1": "string",
+    "name2": "string",
     "city": "string",
     "region": "string",
     "district": "string",
     "street": "string",
-    "postal_code": "string",
+    "p_code": "string",
     "country": "string",
-    "telephone": "string"
+    "tel": "string"
   }
   All keys are optional
 ***************************/
 router.put("/profile", (req, res) => {
-  var options = {
+  const options = {
     method: "POST",
     hostname: "dxktpipo.kaarcloud.com",
     port: 50000,
@@ -136,29 +138,31 @@ router.put("/profile", (req, res) => {
       "Content-Type": "text/xml",
       Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
       Cookie:
-        "MYSAPSSO2=AjExMDAgAA1wb3J0YWw6UE9VU0VSiAAHZGVmYXVsdAEABlBPVVNFUgIAAzAwMAMAA0tQTwQADDIwMjEwNTE2MDkyMwUABAAAAAgKAAZQT1VTRVL%2FAQQwggEABgkqhkiG9w0BBwKggfIwge8CAQExCzAJBgUrDgMCGgUAMAsGCSqGSIb3DQEHATGBzzCBzAIBATAiMB0xDDAKBgNVBAMTA0tQTzENMAsGA1UECxMESjJFRQIBADAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwNTE2MDkyMzU2WjAjBgkqhkiG9w0BCQQxFgQU5r6O2bvFhM0vnhUjBZEXQaBRd4UwCQYHKoZIzjgEAwQuMCwCFEvw46iRGiRTdWal0lGENdkvIh7mAhR99nbBV%2FVuF!vWcFf9TJwBOHeU1A%3D%3D; JSESSIONID=DlxfTFaU-oEiQ-KaDS665MR_Q310eQF-Y2kA_SAPd8qUzL0O7vhfvOohPvMQHDLa; JSESSIONMARKID=AtVP_whRp69jqa6zmZb9dQa1aOGOxKoNo2Fn5jaQA; saplb_*=(J2EE6906720)6906750",
+        "MYSAPSSO2=AjExMDAgAA1wb3J0YWw6UE9VU0VSiAAHZGVmYXVsdAEABlBPVVNFUgIAAzAwMAMAA0tQTwQADDIwMjEwNTIwMDUzMQUABAAAAAgKAAZQT1VTRVL%2FAQQwggEABgkqhkiG9w0BBwKggfIwge8CAQExCzAJBgUrDgMCGgUAMAsGCSqGSIb3DQEHATGBzzCBzAIBATAiMB0xDDAKBgNVBAMTA0tQTzENMAsGA1UECxMESjJFRQIBADAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwNTIwMDUzMTQ5WjAjBgkqhkiG9w0BCQQxFgQU0PzA74N6gRRQ1mQs!9Huca9JJ%2FwwCQYHKoZIzjgEAwQuMCwCFF50JW%2FmXmrfOfSZA5AEdtvn21P1AhQVfb5g!GY1zDT3EmF%2F3EgLLHQCUQ%3D%3D; JSESSIONID=OzlYo4jEjIiR-n0RU3Rj_WAE3U2IeQF-Y2kA_SAPbf3GsYE5As4fUIrmCfj2Rtkh; JSESSIONMARKID=ZGOMbgyKO5kcyYv8BOHWVWi8cRn9bXTf87PX5jaQA; saplb_*=(J2EE6906720)6906750",
     },
     maxRedirects: 20,
   };
 
-  var request = http.request(options, (response) => {
-    var chunks = [];
+  const request = http.request(options, (response) => {
+    const chunks = [];
 
     response.on("data", (chunk) => {
       chunks.push(chunk);
     });
 
     response.on("end", (chunk) => {
-      var body = Buffer.concat(chunks);
+      const body = Buffer.concat(chunks);
       parseString(body, (err, result) => {
         try {
           if (result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"]) {
-            console.log(
+            console.erro(
               result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"][0][
                 "faultstring"
               ][0]
             );
-            res.status(501).send({ message: "Something's wrong with SAP" });
+            return res
+              .status(501)
+              .send({ message: "Something's wrong with SAP" });
           } else {
             if (
               result["SOAP:Envelope"]["SOAP:Body"][0][
@@ -168,26 +172,26 @@ router.put("/profile", (req, res) => {
               switch (
                 result["SOAP:Envelope"]["SOAP:Body"][0][
                   "ns0:ZBAPI_SSR_CUSTDETUPD.Response"
-                ][0]["RETURN"][0]
+                ][0]["RETURN"][0]["MESSAGE"][0]
               ) {
                 case "SUCCESS":
-                  res.status(200).send({
+                  return res.status(200).send({
                     message: `Profile Updated`,
                   });
                   break;
                 case "ERROR_IN_SELECTION":
-                  res.status(404).send({
+                  return res.status(404).send({
                     message: `Not Found`,
                   });
                   break;
                 default:
-                  res.status(501).send({
+                  return res.status(501).send({
                     message: `Error in Updation`,
                   });
                   break;
               }
             } else {
-              res.status(501).send({
+              return res.status(501).send({
                 message: `Error in Updation`,
               });
               return;
@@ -195,7 +199,7 @@ router.put("/profile", (req, res) => {
           }
         } catch (error) {
           console.error(error);
-          res.status(500).send({ message: "Internal Server Error" });
+          return res.status(500).send({ message: "Internal Server Error" });
         }
       });
     });
@@ -207,7 +211,7 @@ router.put("/profile", (req, res) => {
   var builder = new xml2js.Builder();
   const cust_det = {
     CUST_DET: {
-      CUSTOMER: req.body.cid,
+      CUSTOMER: req.user.username,
       NAME: req.body.name1,
       NAME_2: req.body.name2,
       CITY: req.body.city,
@@ -219,18 +223,18 @@ router.put("/profile", (req, res) => {
       TELEPHONE: req.body.tel,
     },
   };
-  console.log(req.body);
+
   try {
     const cust_det_xml = builder.buildObject(cust_det).slice(56);
     request.write(
-      `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTDETUPD>
+      `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n    <soapenv:Header/>\r\n    <soapenv:Body>\r\n        <urn:ZBAPI_SSR_CUSTDETUPD>
     ${cust_det_xml}
-    </urn:ZBAPI_SSR_CUSTDETUPD>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
+    </urn:ZBAPI_SSR_CUSTDETUPD>\r\n    </soapenv:Body>\r\n</soapenv:Envelope>`
     );
     request.end();
   } catch (error) {
     console.error(error);
-    res.status(501).send({ message: "Something's wrong" });
+    return res.status(501).send({ message: "Something's wrong" });
   }
 });
 

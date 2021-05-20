@@ -30,7 +30,7 @@ app.use((req, res, next) => {
 
   jwt.verify(token, process.env.SECRET_KEY, (err, payload) => {
     if (err) {
-      console.log(err);
+      console.error(err);
       return res.status(403).send({ message: "Access token expired" });
     }
     req.user = payload;
