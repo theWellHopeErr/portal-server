@@ -60,7 +60,6 @@ authRoute.post("/login", (req, res) => {
                 return res
                   .status(501)
                   .send({ message: "Something's wrong with SAP" });
-                return;
               } else {
                 if (
                   result["SOAP:Envelope"]["SOAP:Body"][0][
@@ -113,10 +112,76 @@ authRoute.post("/login", (req, res) => {
         return res.status(501).send({ message: "Something's wrong" });
       }
     } else if (role === "vendor") {
+      const options = {
+        method: "POST",
+        hostname: "dxktpipo.kaarcloud.com",
+        port: 50000,
+        path: "/RESTAdapter/ssr-vendor/login",
+        headers: {
+          Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
+          "Content-Type": "application/json",
+          Cookie:
+            "JSESSIONID=Qt2Ua3KUyVUoO2fc26IFx3mx4DDBeQF-Y2kA_SAPPl9gpn1s60U3Q7_XgvN8QDmq; JSESSIONMARKID=_6-0qQqHtbf26kCKPZOTL5n6XY6JKQktTLtn5jaQA; saplb_*=(J2EE6906720)6906750",
+        },
+        maxRedirects: 20,
+      };
+
+      const request = http.request(options, (response) => {
+        const chunks = [];
+
+        response.on("data", (chunk) => {
+          chunks.push(chunk);
+        });
+
+        response.on("end", () => {
+          const body = JSON.parse(Buffer.concat(chunks).toString());
+          switch (body.RETURN.MESSAGE) {
+            case "FORBIDDEN":
+              return res.status(401).send({
+                message: `Invalid Username`,
+              });
+            case "UNAUTHORIZED":
+              return res.status(401).send({
+                message: `Invalid Credentials`,
+              });
+            case "SUCCESS":
+              const accessToken = accessTokenGenerator({
+                username: req.body.username,
+                role: req.body.role,
+              });
+              const data = {
+                username: req.body.username,
+                role: req.body.role,
+                accessToken,
+              };
+              return res.status(200).send({ ...data });
+            default:
+              return res
+                .status(501)
+                .send({ message: "Something's wrong with SAP" });
+          }
+        });
+
+        response.on("error", (error) => {
+          console.error(error);
+        });
+      });
+
+      try {
+        const postData = JSON.stringify({
+          USERNAME: username,
+          PASSWORD: password,
+        });
+        request.write(postData);
+        request.end();
+      } catch (error) {
+        console.error(error);
+        return res.status(501).send({ message: "Something's wrong" });
+      }
     } else if (role === "employee") {
     } else {
       return res.status(401).send({
-        message: `Invalid credentials`,
+        message: `Invalid Credentials`,
       });
     }
   }

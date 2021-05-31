@@ -13,7 +13,7 @@ router.use((req, res, next) => {
 //Endpoint for GETT /
 //To make sure Customer Routing is Working
 router.get("/", (req, res) => {
-  res.send("Customer Router Working");
+  res.send(`Customer Router Working with user ${req.user.username}`);
 });
 
 //Endpoint for GET /profile
@@ -155,7 +155,7 @@ router.put("/profile", (req, res) => {
       parseString(body, (err, result) => {
         try {
           if (result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"]) {
-            console.erro(
+            console.error(
               result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"][0][
                 "faultstring"
               ][0]
@@ -230,6 +230,126 @@ router.put("/profile", (req, res) => {
       `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n    <soapenv:Header/>\r\n    <soapenv:Body>\r\n        <urn:ZBAPI_SSR_CUSTDETUPD>
     ${cust_det_xml}
     </urn:ZBAPI_SSR_CUSTDETUPD>\r\n    </soapenv:Body>\r\n</soapenv:Envelope>`
+    );
+    request.end();
+  } catch (error) {
+    console.error(error);
+    return res.status(501).send({ message: "Something's wrong" });
+  }
+});
+
+//Endpoint for POST /master-data
+//To create a new Customer Record in Master Table
+/**************************
+  req.body Format
+  {
+    "firstname": "string",
+    "lastname": "string",
+    "tel": "string",
+    "street": "string",
+    "pcode": "123456",
+    "city": "string",
+    "country": "IN",
+    "language": "string",
+    "curr": "string",
+    "region": "22",
+    "sorg": "SA01",
+    "distChannel": "S1",
+    "div": "S1",
+    "ref": "TESTCRD"
+  }
+***************************/
+router.post("/master-data", (req, res) => {
+  const options = {
+    method: "POST",
+    hostname: "dxktpipo.kaarcloud.com",
+    port: 50000,
+    path: "/XISOAPAdapter/MessageServlet?senderParty=&senderService=BC_SSR_CUST&receiverParty=&receiverService=&interface=SI_SSR_CUSTMASTERDATA&interfaceNamespace=https://ssr-portals.com/customer",
+    headers: {
+      "Content-Type": "text/xml",
+      Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
+    },
+    maxRedirects: 20,
+  };
+
+  const request = http.request(options, (response) => {
+    const chunks = [];
+
+    response.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    response.on("end", (chunk) => {
+      const body = Buffer.concat(chunks);
+      parseString(body, (err, result) => {
+        try {
+          if (result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"]) {
+            console.error(
+              result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"][0][
+                "faultstring"
+              ][0]
+            );
+            return res
+              .status(501)
+              .send({ message: "Something's wrong with SAP" });
+          } else {
+            if (
+              result["SOAP:Envelope"]["SOAP:Body"][0][
+                "ns0:ZBAPI_SSR_CUSTMASTERDATA.Response"
+              ]
+            ) {
+              if (
+                result["SOAP:Envelope"]["SOAP:Body"][0][
+                  "ns0:ZBAPI_SSR_CUSTMASTERDATA.Response"
+                ][0]["RETURN"][0]["TYPE"][0] === "S"
+              )
+                return res.status(200).send({
+                  message: `Record Created`,
+                  cust_id: parseInt(
+                    result["SOAP:Envelope"]["SOAP:Body"][0][
+                      "ns0:ZBAPI_SSR_CUSTMASTERDATA.Response"
+                    ][0]["CUST_ID"][0]
+                  ),
+                });
+              else
+                return res.status(501).send({
+                  message: `Error During Creation`,
+                });
+            } else
+              return res.status(501).send({
+                message: `Error During Creation`,
+              });
+          }
+        } catch (error) {
+          console.error(error);
+          return res.status(500).send({ message: "Internal Server Error" });
+        }
+      });
+    });
+
+    response.on("error", (error) => {
+      console.error(error);
+    });
+  });
+
+  try {
+    request.write(
+      `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTMASTERDATA>
+      <FIRST_NAME>${req.body.firstname}</FIRST_NAME>
+      <LAST_NAME>${req.body.lastname}</LAST_NAME>
+      <TELEPHONE>${req.body.tel}</TELEPHONE>
+      <STREET>${req.body.street}</STREET>
+      <POSTAL_CODE>${req.body.pcode}</POSTAL_CODE>
+      <CITY>${req.body.city}</CITY>
+      <COUNTRY>${req.body.country}</COUNTRY>
+      <LANGUAGE_P>${req.body.language}</LANGUAGE_P>
+      <CURRENCY>${req.body.curr}</CURRENCY>
+      <REGION>${req.body.region}</REGION>
+      <SORG>${req.body.sorg}</SORG>
+      <DISTCHANNEL>${req.body.distChannel}</DISTCHANNEL>
+      <DIVISION>${req.body.div}</DIVISION>
+      <REF_CUSTOMER>${req.body.ref}</REF_CUSTOMER>
+      </urn:ZBAPI_SSR_CUSTMASTERDATA>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
     );
     request.end();
   } catch (error) {

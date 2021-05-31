@@ -8,16 +8,6 @@ const { flattenJSON, flattenJSONArray } = require("../helpers");
 const fi = express();
 fi.use(bodyParser.json());
 
-//Endpoint for GET /profile
-//To get Customer Details
-/**************************
-  Query Format
-  /customer/inquiry
-***************************/
-fi.get("/fi", (req, res) => {
-  res.send("fi");
-});
-
 //Endpoint for GET /credit
 //To get Credit Memo Details
 /**************************

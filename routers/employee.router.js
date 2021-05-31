@@ -7,7 +7,7 @@ router.use((req, res, next) => {
 });
 
 router.get("/", function (req, res) {
-  res.send("Employee Router Working");
+  res.send(`Employee Router Working with user ${req.user.username}`);
 });
 
 module.exports = router;
