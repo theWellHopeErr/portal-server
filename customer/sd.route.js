@@ -367,13 +367,13 @@ sd.get("/so-details", (req, res) => {
                   "ns0:ZBAPI_SSR_CUSTSODET.Response"
                 ][0]["ITEMS"][0]["item"][0]
               )
-                item =
+                items =
                   result["SOAP:Envelope"]["SOAP:Body"][0][
                     "ns0:ZBAPI_SSR_CUSTSODET.Response"
                   ][0]["ITEMS"][0]["item"][0];
               flattenJSON(item);
 
-              const response = { header, item };
+              const response = { header, items };
               return res.status(200).send(response);
             }
           }
@@ -473,6 +473,102 @@ sd.get("/lod", (req, res) => {
   try {
     request.write(
       `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTDELLIST>\r\n         <CUST_ID>${req.user.username}</CUST_ID>\r\n      </urn:ZBAPI_SSR_CUSTDELLIST>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
+    );
+    request.end();
+  } catch (error) {
+    console.error(error);
+    return res.status(501).send({ message: "Something's wrong" });
+  }
+});
+
+//Endpoint for GET /lod-details
+//To retrieve Delivery Item Details of a salesdocument
+/**************************
+  Query Format
+  /customer/lod-details
+***************************/
+sd.get("/lod-details", (req, res) => {
+  const options = {
+    method: "POST",
+    hostname: "dxktpipo.kaarcloud.com",
+    port: 50000,
+    path: "/XISOAPAdapter/MessageServlet?senderParty=&senderService=BC_SSR_CUST&receiverParty=&receiverService=&interface=SI_SSR_CUSTDELDET&interfaceNamespace=https://ssr-portals.com/customer",
+    headers: {
+      "Content-Type": "text/xml",
+      Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
+      Cookie:
+        "MYSAPSSO2=AjExMDAgAA1wb3J0YWw6UE9VU0VSiAAHZGVmYXVsdAEABlBPVVNFUgIAAzAwMAMAA0tQTwQADDIwMjEwNjEzMDgzMwUABAAAAAgKAAZQT1VTRVL%2FAQUwggEBBgkqhkiG9w0BBwKggfMwgfACAQExCzAJBgUrDgMCGgUAMAsGCSqGSIb3DQEHATGB0DCBzQIBATAiMB0xDDAKBgNVBAMTA0tQTzENMAsGA1UECxMESjJFRQIBADAJBgUrDgMCGgUAoF0wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMjEwNjEzMDgzMzQ3WjAjBgkqhkiG9w0BCQQxFgQU3cQAwhaDgQF5nAoWLOSwcXXBy!gwCQYHKoZIzjgEAwQvMC0CFBxoDFEBaspwsK646A9R!H!lY8EUAhUAsKMT5ddwclCfFH9kf9BMAcYP370%3D; JSESSIONID=-hGXSgfAcwGT0ReL_r1z-FKLEEYEegF-Y2kA_SAPKducDoz54JMnbMerMDh75YKl; JSESSIONMARKID=ZAkNcQwIH5d4a5QmGg144STXQY6T3nR2RlpH5jaQA; saplb_*=(J2EE6906720)6906750",
+    },
+    maxRedirects: 20,
+  };
+
+  const request = http.request(options, (resp) => {
+    const chunks = [];
+
+    resp.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    resp.on("end", (chunk) => {
+      const body = Buffer.concat(chunks);
+      parseString(body, (err, result) => {
+        try {
+          if (result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"]) {
+            console.error({
+              message:
+                result["SOAP:Envelope"]["SOAP:Body"][0]["SOAP:Fault"][0][
+                  "faultstring"
+                ][0],
+            });
+            return res
+              .status(501)
+              .send({ message: "Something's wrong with SAP" });
+          } else {
+            if (
+              result["SOAP:Envelope"]["SOAP:Body"][0][
+                "ns0:ZBAPI_SSR_CUSTDELDET.Response"
+              ][0]["RETURN"][0] &&
+              result["SOAP:Envelope"]["SOAP:Body"][0][
+                "ns0:ZBAPI_SSR_CUSTDELDET.Response"
+              ][0]["RETURN"][0]["TYPE"][0] === "E"
+            ) {
+              console.error({
+                message:
+                  result["SOAP:Envelope"]["SOAP:Body"][0][
+                    "ns0:ZBAPI_SSR_CUSTDELDET.Response"
+                  ][0]["RETURN"][0]["MESSAGE"][0],
+              });
+              return res.status(404).send({
+                message:
+                  result["SOAP:Envelope"]["SOAP:Body"][0][
+                    "ns0:ZBAPI_SSR_CUSTDELDET.Response"
+                  ][0]["RETURN"][0]["MESSAGE"][0],
+              });
+            } else {
+              const items =
+                result["SOAP:Envelope"]["SOAP:Body"][0][
+                  "ns0:ZBAPI_SSR_CUSTDELDET.Response"
+                ][0]["ITEMS"][0]["item"];
+              flattenJSONArray(items);
+              const response = { items };
+              return res.status(200).send(response);
+            }
+          }
+        } catch (error) {
+          console.error(error);
+          return res.status(500).send({ message: "Internal Server Error" });
+        }
+      });
+    });
+
+    resp.on("error", (error) => {
+      console.error(error);
+    });
+  });
+
+  try {
+    request.write(
+      `<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:urn=\"urn:sap-com:document:sap:rfc:functions\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <urn:ZBAPI_SSR_CUSTDELDET>\r\n         <SALESDOCUMENT>${req.query.sd}</SALESDOCUMENT>\r\n      </urn:ZBAPI_SSR_CUSTDELDET>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>`
     );
     request.end();
   } catch (error) {
