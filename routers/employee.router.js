@@ -24,9 +24,10 @@ router.get("/profile", (req, res) => {
     port: 50000,
     path: "/RESTAdapter/ssr-employee/profile",
     headers: {
+      Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
       "Content-Type": "application/json",
       Cookie:
-        "JSESSIONID=yGvTTaeWlh1_i--O1V8C07a-_vc2egF-Y2kA_SAPh0gkn2s79bVWSkmre2vnLOHi; JSESSIONMARKID=dJNrvgq-vi91izVBaN_ukmQr-12Vlgb4Bnpn5jaQA; saplb_*=(J2EE6906720)6906750",
+        "JSESSIONID=yGvTTaeWlh1_i--O1V8C07a-_vc2egF-Y2kA_SAPh0gkn2s79bVWSkmre2vnLOHi; JSESSIONMARKID=_HC5aAMu1vqQiKzNS7wuD-WyvEkc83Ngnkun5jaQA; saplb_*=(J2EE6906720)6906750",
     },
     maxRedirects: 20,
   };
@@ -42,14 +43,14 @@ router.get("/profile", (req, res) => {
       const body = JSON.parse(Buffer.concat(chunks).toString());
       const profile = {
         eid: body.EMPL_DET.PERNR,
-        name1: body.EMPL_DET.NACHN,
-        name2: body.EMPL_DET.VORNA,
+        name1: body.EMPL_DET.VORNA,
+        name2: body.EMPL_DET.NACHN,
         title: body.EMPL_DET.TITEL,
-        nationality: body.EMPL_DET.NATIO,
-        p_code: body.EMPL_DET.PSTLZ,
-        city: body.EMPL_DET.ORT01,
         address: body.EMPL_DET.STRAS,
+        city: body.EMPL_DET.ORT01,
         region: body.EMPL_DET.LAND,
+        p_code: body.EMPL_DET.PSTLZ,
+        nationality: body.EMPL_DET.NATIO,
         tel: body.EMPL_DET.TELNR,
         o_type: body.EMPL_DET.OTYPE,
         start_date: body.EMPL_DET.BEGDA,
@@ -119,6 +120,7 @@ router.put("/profile", (req, res) => {
     port: 50000,
     path: "/RESTAdapter/ssr-employee/edit-profile",
     headers: {
+      Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
       "Content-Type": "application/json",
       Cookie:
         "JSESSIONID=yGvTTaeWlh1_i--O1V8C07a-_vc2egF-Y2kA_SAPh0gkn2s79bVWSkmre2vnLOHi; JSESSIONMARKID=dJNrvgq-vi91izVBaN_ukmQr-12Vlgb4Bnpn5jaQA; saplb_*=(J2EE6906720)6906750",
