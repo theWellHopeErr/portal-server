@@ -179,6 +179,71 @@ authRoute.post("/login", (req, res) => {
         return res.status(501).send({ message: "Something's wrong" });
       }
     } else if (role === "employee") {
+      const options = {
+        method: "POST",
+        hostname: "dxktpipo.kaarcloud.com",
+        port: 50000,
+        path: "/RESTAdapter/ssr-employee/login",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie:
+            "JSESSIONID=yGvTTaeWlh1_i--O1V8C07a-_vc2egF-Y2kA_SAPh0gkn2s79bVWSkmre2vnLOHi; JSESSIONMARKID=dJNrvgq-vi91izVBaN_ukmQr-12Vlgb4Bnpn5jaQA; saplb_*=(J2EE6906720)6906750",
+        },
+        maxRedirects: 20,
+      };
+
+      const request = http.request(options, (response) => {
+        const chunks = [];
+
+        response.on("data", (chunk) => {
+          chunks.push(chunk);
+        });
+
+        response.on("end", () => {
+          const body = JSON.parse(Buffer.concat(chunks).toString());
+          switch (body.RETURN.MESSAGE) {
+            case "FORBIDDEN":
+              return res.status(401).send({
+                message: `Invalid Username`,
+              });
+            case "UNAUTHORIZED":
+              return res.status(401).send({
+                message: `Invalid Credentials`,
+              });
+            case "SUCCESS":
+              const accessToken = accessTokenGenerator({
+                username: req.body.username,
+                role: req.body.role,
+              });
+              const data = {
+                username: req.body.username,
+                role: req.body.role,
+                accessToken,
+              };
+              return res.status(200).send({ ...data });
+            default:
+              return res
+                .status(501)
+                .send({ message: "Something's wrong with SAP" });
+          }
+        });
+
+        response.on("error", (error) => {
+          console.error(error);
+        });
+      });
+
+      try {
+        const postData = JSON.stringify({
+          USERNAME: username,
+          PASSWORD: password,
+        });
+        request.write(postData);
+        request.end();
+      } catch (error) {
+        console.error(error);
+        return res.status(501).send({ message: "Something's wrong" });
+      }
     } else {
       return res.status(401).send({
         message: `Invalid Credentials`,
