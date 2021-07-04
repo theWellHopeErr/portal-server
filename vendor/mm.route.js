@@ -169,9 +169,9 @@ mm.get("/po", (req, res) => {
 //Endpoint for GET /po-details
 //To retrieve Purchase Order Details of a purchase document
 /**************************
-      Query Format
-      /vendor/po-details?pd={purchase_document}
-    ***************************/
+  Query Format
+  /vendor/po-details?pd={purchase_document}
+***************************/
 mm.get("/po-details", (req, res) => {
   const options = {
     method: "POST",
@@ -216,6 +216,84 @@ mm.get("/po-details", (req, res) => {
   try {
     const postData = JSON.stringify({
       PURCH_DOC: req.query.pd,
+    });
+    request.write(postData);
+    request.end();
+  } catch (error) {
+    console.error(error);
+    return res.status(501).send({ message: "Something's wrong" });
+  }
+});
+
+//Endpoint for POST /po-create
+//To create a Purchase Order
+/**************************
+  req.body Format
+  {
+      "vid": "string",
+      "doc_date": "string",
+      "comp_code": "string",
+      "purch_org": "string",
+      "purch_grp": "string",
+      "del_date": "string",
+      "material": "string",
+      "short_txt": "string",
+      "plant": "string",
+      "quantity": "string",
+      "po_item": "string",
+  }
+***************************/
+mm.post("/po-create", (req, res) => {
+  const options = {
+    method: "POST",
+    hostname: "dxktpipo.kaarcloud.com",
+    port: 50000,
+    path: "/RESTAdapter/ssr-vendor/po-create",
+    headers: {
+      Authorization: "Basic cG91c2VyOlRlY2hAMjAyMQ==",
+      "Content-Type": "application/json",
+      Cookie:
+        "JSESSIONID=Ct76tWQzHyHm2RprCjYQ60Hd3qpwegF-Y2kA_SAP81Q6x8tzN4QMzFt4IGBgb1m-; JSESSIONMARKID=bbp9OwUaaOwBKXNopMdPXiuH5u7mzSvyzRFn5jaQA; saplb_*=(J2EE6906720)6906750",
+    },
+    maxRedirects: 20,
+  };
+
+  const request = http.request(options, (response) => {
+    const chunks = [];
+
+    response.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    response.on("end", (chunk) => {
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      if (body.RETURN?.item?.TYPE === "E") {
+        console.error(body.RETURN?.item?.MESSAGE);
+        res.status(501).send({ error: body.RETURN?.item?.MESSAGE });
+      } else {
+        if (body.PURCHASEORDER)
+          res.status(201).send({ po: body.PURCHASEORDER });
+      }
+    });
+
+    response.on("error", (error) => {
+      console.error(error);
+    });
+  });
+
+  try {
+    const postData = JSON.stringify({
+      VEND_ID: req.body.vid,
+      DOC_DATE: req.body.doc_date,
+      COMPANY_CODE: req.body.comp_code,
+      PURCHASE_ORG: req.body.purch_org,
+      PURCHASE_GRP: req.body.purch_grp,
+      DELIVERY_DATE: req.body.del_date,
+      MATERIAL: req.body.material,
+      SHORT_TEXT: req.body.short_txt,
+      QUANTITY: req.body.plant,
+      PLANT: req.body.quantity,
+      PO_ITEM: req.body.po_item,
     });
     request.write(postData);
     request.end();
