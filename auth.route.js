@@ -14,8 +14,8 @@ authRoute.use(bodyParser.json());
 /**************************
   req.body Format
   {
-    "username": String,
-    "password": String,
+    "username": "string",
+    "password": "string",
   }
 ***************************/
 authRoute.post("/login", (req, res) => {

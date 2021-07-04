@@ -64,6 +64,67 @@ hcm.get("/leave-data", (req, res) => {
   }
 });
 
+//Endpoint for POST /leave-req
+//To create Leave Request
+/**************************
+  req.body Format
+  {
+      "eid": "string",
+      "start_date": "string",
+      "end_date": "string",
+      "type": "string",
+  }
+***************************/
+hcm.post("/leave-req", (req, res) => {
+  const options = {
+    method: "POST",
+    hostname: "dxktpipo.kaarcloud.com",
+    port: 50000,
+    path: "/RESTAdapter/ssr-employee/leave-req",
+    headers: {
+      Authorization: "Basic UE9VU0VSOlRlY2hAMjAyMQ==",
+      "Content-Type": "application/json",
+      Cookie:
+        "JSESSIONID=Ct76tWQzHyHm2RprCjYQ60Hd3qpwegF-Y2kA_SAP81Q6x8tzN4QMzFt4IGBgb1m-; JSESSIONMARKID=bbp9OwUaaOwBKXNopMdPXiuH5u7mzSvyzRFn5jaQA; saplb_*=(J2EE6906720)6906750",
+    },
+    maxRedirects: 20,
+  };
+
+  const request = http.request(options, (response) => {
+    const chunks = [];
+
+    response.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    response.on("end", (chunk) => {
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      if (body.RETURN?.TYPE === "E") {
+        console.error(body.RETURN?.MESSAGE);
+        res.status(501).send({ error: body.RETURN?.MESSAGE });
+      } else res.status(201).send({ message: "Leave Request Created." });
+    });
+
+    response.on("error", (error) => {
+      console.error(error);
+    });
+  });
+
+  try {
+    const postData = JSON.stringify({
+      EMPL_ID: req.body.eid,
+      START_DATE: req.body.start_date,
+      END_DATE: req.body.end_date,
+      LEAVE_TYPE: req.body.type,
+    });
+    request.write(postData);
+    request.end();
+  } catch (error) {
+    console.error(error);
+    return res.status(501).send({ message: "Something's wrong" });
+  }
+});
+
 //Endpoint for GET /ps
 //To retrieve Pay Slip List of an Employee
 /**************************
