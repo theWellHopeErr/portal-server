@@ -117,7 +117,6 @@ hcm.post("/leave-req", (req, res) => {
       END_DATE: req.body.end_date,
       LEAVE_TYPE: req.body.type,
     });
-    console.log(postData);
     request.write(postData);
     request.end();
   } catch (error) {
