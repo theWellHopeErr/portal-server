@@ -101,7 +101,7 @@ hcm.post("/leave-req", (req, res) => {
       const body = JSON.parse(Buffer.concat(chunks).toString());
       if (body.RETURN?.TYPE === "E") {
         console.error(body.RETURN?.MESSAGE);
-        res.status(501).send({ error: body.RETURN?.MESSAGE });
+        res.status(200).send({ error: body.RETURN?.MESSAGE });
       } else res.status(201).send({ message: "Leave Request Created." });
     });
 
@@ -117,6 +117,7 @@ hcm.post("/leave-req", (req, res) => {
       END_DATE: req.body.end_date,
       LEAVE_TYPE: req.body.type,
     });
+    console.log(postData);
     request.write(postData);
     request.end();
   } catch (error) {

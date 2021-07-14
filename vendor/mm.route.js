@@ -269,7 +269,7 @@ mm.post("/po-create", (req, res) => {
       const body = JSON.parse(Buffer.concat(chunks).toString());
       if (body.RETURN?.item?.TYPE === "E") {
         console.error(body.RETURN?.item?.MESSAGE);
-        res.status(501).send({ error: body.RETURN?.item?.MESSAGE });
+        res.status(200).send({ error: body.RETURN?.item?.MESSAGE });
       } else {
         if (body.PURCHASEORDER)
           res.status(201).send({ po: body.PURCHASEORDER });
