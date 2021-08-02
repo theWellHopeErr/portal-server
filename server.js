@@ -6,8 +6,9 @@ const dotEnv = require("dotenv");
 const cors = require("cors");
 
 var customerRouter = require("./routers/customer.router");
-var vendorRouter = require("./routers/vendor.router.js");
+var vendorRouter = require("./routers/vendor.router");
 var employeeRouter = require("./routers/employee.router");
+var maintenanceRouter = require("./routers/maintenance.router");
 
 dotEnv.config();
 const PORT = process.env.PORT || 8080;
@@ -41,6 +42,7 @@ app.use((req, res, next) => {
 app.use("/customer", customerRouter);
 app.use("/vendor", vendorRouter);
 app.use("/employee", employeeRouter);
+app.use("/maintenance", maintenanceRouter);
 
 app.listen(PORT, () => {
   console.log(`Listening at PORT: ${PORT}`);
