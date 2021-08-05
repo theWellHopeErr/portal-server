@@ -144,14 +144,14 @@ pm.get("/notification-det", (req, res) => {
 
   eg:
     "notif_type": "B1",
-    "equip_id": "PUMP2",
-    "func_loc": "WTP-STRG",
-    "priority": "1",
-    "desc": "HELLO THERE",
-    "start_mal_date": "2021-07-30",
-    "req_start_date": "2021-07-30",
-    "req_end_date": "2021-07-31",
-    "reported_by": "ME"
+    "equip_id": "10000030",
+    "func_loc": "4000-300",
+    "desc": "GENERAL KENOBI",
+    "priority": "2",
+    "start_mal_date": "2021-08-04",
+    "req_start_date": "2021-08-06",
+    "req_end_date": "2021-08-10",
+    "reported_by": "TWHE"
 ***************************/
 pm.post("/notification", (req, res) => {
   const options = {
@@ -178,10 +178,14 @@ pm.post("/notification", (req, res) => {
     response.on("end", (chunk) => {
       try {
         const body = JSON.parse(Buffer.concat(chunks).toString());
-        if (body.RETURN?.TYPE === "E") {
-          console.error(body.RETURN?.MESSAGE);
+        if (body.NOTIFICATION_NUMBER) {
+          res.status(201).send({
+            message: "Notification Created.",
+            notif_no: body.NOTIFICATION_NUMBER,
+          });
+        } else {
           res.status(500).send({ error: body.RETURN?.MESSAGE });
-        } else res.status(201).send({ message: "Notification Created." });
+        }
       } catch {
         res.status(500).send({ error: "ERROR" });
       }
@@ -199,8 +203,8 @@ pm.post("/notification", (req, res) => {
       NOTIF_TYPE: req.body.notif_type,
       EQUIP_ID: req.body.equip_id,
       FUNC_LOCATION: req.body.func_loc,
-      PRIORITY: req.body.priority,
       DESCRIPTION: req.body.desc,
+      PRIORITY: req.body.priority,
       STRT_MALFUNC_DATE: req.body.start_mal_date,
       REQ_START_DATE: req.body.req_start_date,
       REQ_END_DATE: req.body.req_end_date,
@@ -271,6 +275,7 @@ pm.put("/notification", (req, res) => {
             message: `Notification Updated`,
           });
       } catch {
+        console.log(Buffer.concat(chunks).toString());
         return res.status(500).send({
           message: "Error During Updation",
         });
@@ -440,10 +445,9 @@ pm.get("/wo-det", (req, res) => {
 
   eg:
     "notif_type": "1",
-    "notif_no": "10011426",
-    "order_type": "PM01",
     "equip_id": "AA000007",
-    "desc": "ASDKAS"
+    "order_type": "PM01",
+    "desc": "HELLO THERE",
     
 ***************************/
 pm.post("/work-order", (req, res) => {
@@ -473,10 +477,14 @@ pm.post("/work-order", (req, res) => {
         const body = JSON.parse(Buffer.concat(chunks).toString());
         if (body.RETURN?.item[0].TYPE === "E") {
           const message = body?.RETURN?.item.map((o) => o.MESSAGE);
-          message.unshift("ERROR");
+          message.unshift("E");
           console.log(message);
           return res.status(500).send({ message });
-        } else res.status(201).send({ message: "Work Order Created." });
+        } else {
+          const message = body?.RETURN?.item.map((o) => o.MESSAGE);
+          message.unshift("S");
+          res.status(201).send({ message });
+        }
       } catch {
         res.status(500).send({ error: "ERROR" });
       }
@@ -490,10 +498,10 @@ pm.post("/work-order", (req, res) => {
   try {
     const postData = JSON.stringify({
       NOTIFICATION_TYPE: req.body.notif_type,
-      NOTIFICATION_NO: req.body.notif_no,
       ORDER_TYPE: req.body.order_type,
       EQUIPMENT_NO: req.body.equip_id,
       OPR_DESCRIPTION: req.body.desc,
+      NOTIFICATION_NO: "",
     });
     request.write(postData);
     request.end();
@@ -523,7 +531,6 @@ pm.post("/work-order", (req, res) => {
     "order_type":"PM01",
     "notif_type":"B1",
     "opr_desc":"HELLO THERE",
-    "pernr":"00000000",
     "equip_id":"10000066",
     "priority":"4",
     "desc":"HELLO THERE"
@@ -556,11 +563,12 @@ pm.put("/work-order", (req, res) => {
         const body = JSON.parse(Buffer.concat(chunks).toString());
         if (body?.RETURN?.item[0]?.TYPE == "S") {
           const message = body?.RETURN?.item.map((o) => o.MESSAGE);
-          message.unshift("SUCCESS");
+          message.unshift("S");
           return res.status(200).send({ message });
         } else
           return res.status(500).send({ error: body?.RETURN?.item.MESSAGE });
       } catch (error) {
+        console.log(Buffer.concat(chunks).toString());
         console.log(error);
         return res.status(501).send({ error: "ERROR" });
       }
