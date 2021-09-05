@@ -359,7 +359,7 @@ pm.get("/wo-list", (req, res) => {
 
   try {
     const postData = JSON.stringify({
-      PLANT: req.user.username,
+      PLANT: req.user.username.slice(0, 3) + "2",
       PLANGRP: req.user.plangrp,
     });
     request.write(postData);
